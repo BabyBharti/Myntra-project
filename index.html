@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Scraping Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        brandBlue: '#3b82f6',
+                        brandIndigo: '#6366f1'
+                    },
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-300 min-h-screen font-sans p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header & Search -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-slate-700 pb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="zap" class="text-brandIndigo"></i>
+                    Live App Scraper
+                </h1>
+                <p class="text-slate-400 mt-1">Dynamically scrape & analyze fashion e-commerce reviews</p>
+            </div>
+            
+            <div class="flex items-center gap-3 bg-cardBg p-3 rounded-xl border border-slate-700 w-full md:w-auto shadow-lg">
+                <i data-lucide="search" class="text-slate-400"></i>
+                <input type="text" id="liveSearchInput" placeholder="e.g. Myntra or Ajio" class="bg-transparent border-none focus:outline-none text-white placeholder-slate-500 w-full md:w-64">
+                <button id="scrapeBtn" onclick="runLiveScraper()" class="bg-brandIndigo hover:bg-indigo-500 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center gap-2">
+                    <span>Scrape</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loadingOverlay" class="hidden fixed inset-0 bg-darkBg/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+            <i data-lucide="loader-2" class="w-12 h-12 text-brandIndigo animate-spin"></i>
+            <h2 class="text-xl font-bold text-white mt-4">Scraping Live Data...</h2>
+            <p class="text-slate-400 mt-2">Connecting to Google Play and Apple App Store</p>
+        </div>
+
+        <!-- Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-blue-500/20 rounded-lg"><i data-lucide="message-square" class="text-blue-400"></i></div>
+                    <h3 class="text-slate-400 font-medium">Total Reviews</h3>
+                </div>
+                <p id="totalReviews" class="text-3xl font-bold text-white">0</p>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-yellow-500/20 rounded-lg"><i data-lucide="star" class="text-yellow-400"></i></div>
+                    <h3 class="text-slate-400 font-medium">Avg Rating</h3>
+                </div>
+                <p id="avgRating" class="text-3xl font-bold text-white">0.0</p>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-green-500/20 rounded-lg"><i data-lucide="smile" class="text-green-400"></i></div>
+                    <h3 class="text-slate-400 font-medium">Net Sentiment</h3>
+                </div>
+                <p id="netSentiment" class="text-3xl font-bold text-white">0%</p>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-indigo-500/20 rounded-lg"><i data-lucide="smartphone" class="text-indigo-400"></i></div>
+                    <h3 class="text-slate-400 font-medium">Active App</h3>
+                </div>
+                <p id="activeApp" class="text-xl font-bold text-white truncate">-</p>
+            </div>
+        </div>
+
+        <!-- Charts & Filters -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="glass-card rounded-2xl p-6 shadow-lg lg:col-span-2">
+                <h3 class="text-lg font-bold text-white mb-4">Rating Distribution</h3>
+                <div class="relative h-64 w-full">
+                    <canvas id="ratingChart"></canvas>
+                </div>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg flex flex-col items-center">
+                <h3 class="text-lg font-bold text-white mb-4 w-full text-left">Sentiment Breakdown</h3>
+                <div class="relative h-56 w-full max-w-[250px]">
+                    <canvas id="sentimentChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-6 shadow-lg mb-8">
+            <div class="flex flex-wrap gap-4 items-center mb-6">
+                <div class="flex-1 min-w-[250px] relative">
+                    <i data-lucide="filter" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i>
+                    <input type="text" id="filterInput" placeholder="Filter reviews..." class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 pl-10 pr-4 text-white focus:outline-none focus:border-brandIndigo">
+                </div>
+                <select id="ratingFilter" class="bg-slate-800 border border-slate-700 rounded-xl py-2 px-4 text-white focus:outline-none focus:border-brandIndigo">
+                    <option value="all">All Ratings</option>
+                    <option value="5">5 Stars</option>
+                    <option value="4">4 Stars</option>
+                    <option value="3">3 Stars</option>
+                    <option value="2">2 Stars</option>
+                    <option value="1">1 Star</option>
+                </select>
+                <select id="sourceFilter" class="bg-slate-800 border border-slate-700 rounded-xl py-2 px-4 text-white focus:outline-none focus:border-brandIndigo">
+                    <option value="all">All Sources</option>
+                    <option value="play_store">Play Store</option>
+                    <option value="app_store">App Store</option>
+                </select>
+                <select id="themeFilter" class="bg-slate-800 border border-slate-700 rounded-xl py-2 px-4 text-white focus:outline-none focus:border-brandIndigo">
+                    <option value="all">All Themes</option>
+                    <option value="core">Core Wishlist/Save</option>
+                    <option value="purchase">Purchase-decision</option>
+                    <option value="fit">Fit/Size</option>
+                    <option value="price">Price/Timing</option>
+                    <option value="quality">Quality/Trust</option>
+                    <option value="styling">Styling/Occasion</option>
+                    <option value="regret">Regret/Abandonment</option>
+                    <option value="comparison">Comparison/Alternatives</option>
+                    <option value="social">Social Validation</option>
+                </select>
+                <select id="sentimentFilter" class="bg-slate-800 border border-slate-700 rounded-xl py-2 px-4 text-white focus:outline-none focus:border-brandIndigo">
+                    <option value="all">All Sentiments</option>
+                    <option value="positive">Positive</option>
+                    <option value="neutral">Neutral</option>
+                    <option value="negative">Negative</option>
+                </select>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700 text-slate-400 text-sm">
+                            <th class="pb-3 font-semibold w-24">Date</th>
+                            <th class="pb-3 font-semibold w-24">Source</th>
+                            <th class="pb-3 font-semibold w-24">Rating</th>
+                            <th class="pb-3 font-semibold w-24">Sentiment</th>
+                            <th class="pb-3 font-semibold">Review</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reviewsTableBody" class="text-sm">
+                        <tr><td colspan="5" class="py-10 text-center text-slate-500">Search for an app to start scraping.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let allData = [];
+        let filteredData = [];
+        let charts = { rating: null, sentiment: null };
+
+        const filterInput = document.getElementById('filterInput');
+        const ratingFilter = document.getElementById('ratingFilter');
+        const sourceFilter = document.getElementById('sourceFilter');
+        const sentimentFilter = document.getElementById('sentimentFilter');
+        const themeFilter = document.getElementById('themeFilter');
+        const tableBody = document.getElementById('reviewsTableBody');
+
+        const THEMES = {
+            core: ["wishlist", "wish list", "save for later", "saved item", "favorite", "favourited", "bookmark", "shortlist", "add to wishlist"],
+            purchase: ["didn't buy", "haven't bought", "still thinking", "not sure", "unsure", "hesitant", "hesitate", "second thoughts", "still deciding", "decide", "decision", "waiting to buy", "thinking about buying", "will buy later", "planning to buy"],
+            fit: ["size", "fit", "sizing", "true to size", "runs small", "runs large", "size chart", "size guide", "too tight", "too loose", "size doubt"],
+            price: ["price", "expensive", "cheap", "discount", "sale", "offer", "wait for sale", "price drop", "too costly", "budget", "afford"],
+            quality: ["quality", "fabric", "material", "review", "reviews", "rating", "trust", "doubt", "worried", "risky", "return", "returned", "exchange", "refund"],
+            styling: ["styling", "style", "pair with", "occasion", "outfit", "wear it with", "match", "versatile", "everyday wear"],
+            regret: ["forgot", "regret", "missed out", "out of stock", "sold out", "no longer available", "changed my mind", "don't need it anymore"],
+            comparison: ["comparing", "compare", "alternative", "similar", "other options", "better option", "cheaper elsewhere", "found better"],
+            social: ["friend said", "opinion", "ask", "recommend", "suggested", "looks good on", "comments"]
+        };
+
+        function analyzeSentiment(text) {
+            const txt = text.toLowerCase();
+            const positiveWords = ['love', 'great', 'good', 'amazing', 'perfect', 'awesome', 'nice', 'happy', 'best', 'beautiful', 'excellent', 'like'];
+            const negativeWords = ['bad', 'worst', 'hate', 'terrible', 'horrible', 'wrong', 'poor', 'slow', 'expensive', 'cheap', 'regret', 'hesitate', 'issue', 'problem'];
+            
+            let posScore = 0;
+            let negScore = 0;
+
+            positiveWords.forEach(w => { if (txt.includes(w)) posScore++; });
+            negativeWords.forEach(w => { if (txt.includes(w)) negScore++; });
+
+            if (posScore > negScore) return { label: 'Positive', color: 'text-green-400', bg: 'bg-green-400/10' };
+            if (negScore > posScore) return { label: 'Negative', color: 'text-rose-400', bg: 'bg-rose-400/10' };
+            return { label: 'Neutral', color: 'text-slate-400', bg: 'bg-slate-400/10' };
+        }
+
+        async function runLiveScraper() {
+            const appName = document.getElementById('liveSearchInput').value.trim();
+            if(!appName) {
+                alert("Please enter an app name.");
+                return;
+            }
+
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ app_name: appName })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.status === 'success') {
+                    document.getElementById('activeApp').innerText = result.app_query;
+                    processData(result.data);
+                } else {
+                    alert("Scraping Error: " + (result.error || "Unknown error"));
+                }
+            } catch(e) {
+                alert("Connection Error: " + e.message);
+            } finally {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+        }
+
+        function processData(data) {
+            allData = data.map(item => {
+                const sentiment = analyzeSentiment(item.raw_text || '');
+                return { ...item, _sentiment: sentiment };
+            });
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const term = filterInput.value.toLowerCase();
+            const rating = ratingFilter.value;
+            const source = sourceFilter.value;
+            const sentiment = sentimentFilter.value;
+            const theme = themeFilter.value;
+
+            filteredData = allData.filter(item => {
+                const textLower = (item.raw_text || '').toLowerCase();
+                const textMatch = textLower.includes(term);
+                const r = parseInt(item.rating) || 0;
+                const ratingMatch = rating === 'all' ? true : r === parseInt(rating);
+                const sourceMatch = source === 'all' ? true : (item.source || '').toLowerCase() === source;
+                const sentMatch = sentiment === 'all' ? true : item._sentiment.label.toLowerCase() === sentiment;
+                
+                let themeMatch = true;
+                if (theme !== 'all') {
+                    themeMatch = THEMES[theme].some(keyword => textLower.includes(keyword));
+                }
+
+                return textMatch && ratingMatch && sourceMatch && sentMatch && themeMatch;
+            });
+
+            updateUI();
+        }
+
+        filterInput.addEventListener('input', applyFilters);
+        ratingFilter.addEventListener('change', applyFilters);
+        sourceFilter.addEventListener('change', applyFilters);
+        sentimentFilter.addEventListener('change', applyFilters);
+        themeFilter.addEventListener('change', applyFilters);
+
+        function updateUI() {
+            document.getElementById('totalReviews').innerText = filteredData.length;
+            
+            const validRatings = filteredData.map(d => parseFloat(d.rating)).filter(r => !isNaN(r));
+            const avgRating = validRatings.length > 0 ? (validRatings.reduce((a,b)=>a+b,0) / validRatings.length).toFixed(1) : '0.0';
+            document.getElementById('avgRating').innerText = avgRating;
+
+            const posCount = filteredData.filter(d => d._sentiment.label === 'Positive').length;
+            const negCount = filteredData.filter(d => d._sentiment.label === 'Negative').length;
+            const netSentiment = filteredData.length > 0 ? Math.round(((posCount - negCount) / filteredData.length) * 100) : 0;
+            document.getElementById('netSentiment').innerText = netSentiment > 0 ? `+${netSentiment}%` : `${netSentiment}%`;
+
+            tableBody.innerHTML = '';
+            if(filteredData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-500">No reviews found.</td></tr>';
+            } else {
+                filteredData.forEach(item => {
+                    const d = item.date ? new Date(item.date).toLocaleDateString() : 'N/A';
+                    const ratingNum = parseInt(item.rating) || 0;
+                    let stars = '';
+                    for(let i=0; i<5; i++) stars += `<i data-lucide="star" class="w-3 h-3 inline-block ${i<ratingNum ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600'}"></i>`;
+                    
+                    const srcIcon = item.source === 'play_store' ? 'play' : 'apple';
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-800 hover:bg-slate-800/50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="py-3 pr-4 whitespace-nowrap text-slate-400">${d}</td>
+                        <td class="py-3 pr-4">
+                            <span class="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded-md flex items-center gap-1 w-max">
+                                <i data-lucide="${srcIcon}" class="w-3 h-3"></i>
+                                ${item.source === 'play_store' ? 'Play Store' : 'App Store'}
+                            </span>
+                        </td>
+                        <td class="py-3 pr-4 whitespace-nowrap">${stars}</td>
+                        <td class="py-3 pr-4">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${item._sentiment.bg} ${item._sentiment.color}">
+                                ${item._sentiment.label}
+                            </span>
+                        </td>
+                        <td class="py-3 text-slate-300">
+                            <p class="text-sm line-clamp-2" title="${item.raw_text?.replace(/"/g,'&quot;')}">${item.raw_text}</p>
+                            ${item.url ? `<a href="${item.url}" target="_blank" class="text-xs text-brandIndigo hover:underline mt-1 inline-block">View Source &rarr;</a>` : ''}
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+                lucide.createIcons();
+            }
+
+            updateCharts();
+        }
+
+        function updateCharts() {
+            const ratingCounts = {1:0, 2:0, 3:0, 4:0, 5:0};
+            filteredData.forEach(d => {
+                const r = parseInt(d.rating);
+                if (r >= 1 && r <= 5) ratingCounts[r]++;
+            });
+
+            if (charts.rating) charts.rating.destroy();
+            const ctxR = document.getElementById('ratingChart').getContext('2d');
+            charts.rating = new Chart(ctxR, {
+                type: 'bar',
+                data: {
+                    labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
+                    datasets: [{
+                        data: Object.values(ratingCounts),
+                        backgroundColor: '#6366f1',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            const sentCounts = { Positive: 0, Neutral: 0, Negative: 0 };
+            filteredData.forEach(d => { sentCounts[d._sentiment.label]++; });
+
+            if (charts.sentiment) charts.sentiment.destroy();
+            const ctxS = document.getElementById('sentimentChart').getContext('2d');
+            charts.sentiment = new Chart(ctxS, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive', 'Neutral', 'Negative'],
+                    datasets: [{
+                        data: [sentCounts.Positive, sentCounts.Neutral, sentCounts.Negative],
+                        backgroundColor: ['#4ade80', '#94a3b8', '#fb7185'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, padding: 15 } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
