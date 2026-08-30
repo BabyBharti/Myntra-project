@@ -438,6 +438,32 @@
                 lucide.createIcons();
             }
         }
+        
+        function applyFilters() {
+            if(!allData) return;
+            
+            const textFilter = document.getElementById('filterInput').value.toLowerCase();
+            const srcFilter = document.getElementById('sourceFilter').value;
+            const intFilter = document.getElementById('intentFilter').value;
+            
+            filteredData = allData.filter(item => {
+                const textMatch = (item.raw_text || '').toLowerCase().includes(textFilter) || 
+                                  (item.ai_analysis?.theme || '').toLowerCase().includes(textFilter) ||
+                                  (item.ai_analysis?.barrier || '').toLowerCase().includes(textFilter);
+                
+                const srcMatch = srcFilter === 'all' || item.source === srcFilter;
+                const intMatch = intFilter === 'all' || item.ai_analysis?.intent === intFilter;
+                
+                return textMatch && srcMatch && intMatch;
+            });
+            
+            updateReviewsTable();
+        }
+
+        // Bind filter events
+        document.getElementById('filterInput').addEventListener('input', applyFilters);
+        document.getElementById('sourceFilter').addEventListener('change', applyFilters);
+        document.getElementById('intentFilter').addEventListener('change', applyFilters);
 
         function updateCharts() {
             if(!currentInsights) return;
