@@ -1,0 +1,164 @@
+{
+    "total_analyzed": 350,
+    "theme_frequency": {
+        "Quality/Trust": 137,
+        "Other": 82,
+        "Styling/Occasion": 12,
+        "Price/Timing": 70,
+        "Fit/Size": 27,
+        "Social Validation": 9,
+        "Core Wishlist/Save": 9,
+        "Comparison/Alternatives": 1,
+        "Regret/Abandonment": 2,
+        "Purchase Decision": 1
+    },
+    "theme_percentage": {
+        "Quality/Trust": 39.14,
+        "Other": 23.43,
+        "Styling/Occasion": 3.43,
+        "Price/Timing": 20.0,
+        "Fit/Size": 7.71,
+        "Social Validation": 2.57,
+        "Core Wishlist/Save": 2.57,
+        "Comparison/Alternatives": 0.29,
+        "Regret/Abandonment": 0.57,
+        "Purchase Decision": 0.29
+    },
+    "purchase_intent_distribution": {
+        "Unknown": 85.43,
+        "High": 4.29,
+        "Low": 9.43,
+        "Medium": 0.86
+    },
+    "barrier_frequency": {
+        "Quality doubts": 137,
+        "Waiting for discount": 64,
+        "Fit/Size uncertainty": 27,
+        "Price too high": 6,
+        "Out of stock / missed opportunity": 2,
+        "Hesitation": 1
+    },
+    "barrier_x_rating": {
+        "Quality doubts": 4.26,
+        "Waiting for discount": 3.72,
+        "Fit/Size uncertainty": 3.15,
+        "Price too high": 4.17,
+        "Out of stock / missed opportunity": 1.5,
+        "Hesitation": 1.0
+    },
+    "barrier_x_source": {
+        "Quality doubts": {
+            "play_store": 87,
+            "app_store": 50
+        },
+        "Waiting for discount": {
+            "play_store": 35,
+            "app_store": 29
+        },
+        "Fit/Size uncertainty": {
+            "play_store": 9,
+            "app_store": 18
+        },
+        "Price too high": {
+            "play_store": 5,
+            "app_store": 1
+        },
+        "Out of stock / missed opportunity": {
+            "app_store": 2
+        },
+        "Hesitation": {
+            "app_store": 1
+        }
+    },
+    "theme_x_purchase_intent": {
+        "Quality/Trust": {
+            "Unknown": 121,
+            "High": 5,
+            "Low": 11
+        },
+        "Other": {
+            "Unknown": 66,
+            "Low": 14,
+            "High": 2
+        },
+        "Styling/Occasion": {
+            "Unknown": 9,
+            "Low": 2,
+            "High": 1
+        },
+        "Price/Timing": {
+            "Unknown": 61,
+            "Low": 3,
+            "High": 5,
+            "Medium": 1
+        },
+        "Fit/Size": {
+            "Unknown": 25,
+            "High": 1,
+            "Low": 1
+        },
+        "Social Validation": {
+            "Low": 1,
+            "Unknown": 6,
+            "Medium": 1,
+            "High": 1
+        },
+        "Core Wishlist/Save": {
+            "Unknown": 9
+        },
+        "Comparison/Alternatives": {
+            "Unknown": 1
+        },
+        "Regret/Abandonment": {
+            "Low": 1,
+            "Unknown": 1
+        },
+        "Purchase Decision": {
+            "Medium": 1
+        }
+    },
+    "top_5_needs": [
+        [
+            "Verified reviews with photos",
+            137
+        ],
+        [
+            "Sale notifications",
+            64
+        ],
+        [
+            "Clearer size guides or AR try-on",
+            27
+        ],
+        [
+            "Price drop alerts or cheaper alternatives",
+            6
+        ],
+        [
+            "Back in stock alerts",
+            2
+        ]
+    ],
+    "top_5_opportunities": [
+        [
+            "Verified reviews with photos",
+            137
+        ],
+        [
+            "Sale notifications",
+            64
+        ],
+        [
+            "Clearer size guides or AR try-on",
+            27
+        ],
+        [
+            "Price drop alerts or cheaper alternatives",
+            6
+        ],
+        [
+            "Back in stock alerts",
+            2
+        ]
+    ]
+}

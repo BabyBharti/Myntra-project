@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Discovery Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { darkBg: '#0f172a', cardBg: '#1e293b', brandBlue: '#3b82f6', brandIndigo: '#6366f1' },
+                    animation: { 'spin-slow': 'spin 3s linear infinite', }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-300 min-h-screen font-sans p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header & Search -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-slate-700 pb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="brain-circuit" class="text-brandIndigo"></i>
+                    Myntra AI Discovery Engine
+                </h1>
+                <p class="text-slate-400 mt-1">Identify wishlist-to-purchase barriers and opportunities</p>
+            </div>
+            
+            <div class="flex items-center gap-3 bg-cardBg p-3 rounded-xl border border-slate-700 w-full md:w-auto shadow-lg">
+                <button id="scrapeBtn" onclick="runLiveScraper()" class="bg-brandIndigo hover:bg-indigo-500 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center gap-2">
+                    <span>Analyze Myntra Data</span>
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loadingOverlay" class="hidden fixed inset-0 bg-darkBg/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+            <i data-lucide="loader-2" class="w-12 h-12 text-brandIndigo animate-spin"></i>
+            <h2 class="text-xl font-bold text-white mt-4">AI Engine Analyzing...</h2>
+            <p class="text-slate-400 mt-2">Scraping reviews and extracting NLP insights</p>
+        </div>
+
+        <!-- Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" id="overviewMetrics">
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-blue-500/20 rounded-lg"><i data-lucide="bar-chart" class="text-blue-400"></i></div>
+                    <h3 class="text-slate-400 font-medium">Total Analyzed</h3>
+                </div>
+                <p id="totalAnalyzed" class="text-3xl font-bold text-white">0</p>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-rose-500/20 rounded-lg"><i data-lucide="shield-alert" class="text-rose-400"></i></div>
+                    <h3 class="text-slate-400 font-medium">Top Barrier</h3>
+                </div>
+                <p id="topBarrier" class="text-xl font-bold text-white truncate">-</p>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-green-500/20 rounded-lg"><i data-lucide="lightbulb" class="text-green-400"></i></div>
+                    <h3 class="text-slate-400 font-medium">Top Opportunity</h3>
+                </div>
+                <p id="topOpportunity" class="text-lg font-bold text-white truncate" title="">-</p>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="p-2 bg-indigo-500/20 rounded-lg"><i data-lucide="smartphone" class="text-indigo-400"></i></div>
+                    <h3 class="text-slate-400 font-medium">Active App</h3>
+                </div>
+                <p id="activeApp" class="text-xl font-bold text-white truncate">-</p>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+                <h3 class="text-lg font-bold text-white mb-4">Barrier Opportunity Scores</h3>
+                <div class="relative h-64 w-full">
+                    <canvas id="opportunityChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card rounded-2xl p-6 shadow-lg flex flex-col items-center">
+                    <h3 class="text-lg font-bold text-white mb-4 w-full text-left">Theme Distribution</h3>
+                    <div class="relative h-48 w-full">
+                        <canvas id="themeChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card rounded-2xl p-6 shadow-lg flex flex-col items-center">
+                    <h3 class="text-lg font-bold text-white mb-4 w-full text-left">Purchase Intent</h3>
+                    <div class="relative h-48 w-full">
+                        <canvas id="intentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Deep Insights Panel -->
+        <div class="glass-card rounded-2xl p-6 shadow-lg mb-8" id="aiInsightsContainer" style="display: none;">
+            <h3 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brandIndigo to-purple-400 mb-6 flex items-center gap-2">
+                <i data-lucide="sparkles" class="text-brandIndigo w-6 h-6"></i> 
+                AI Deep Insights (LLM Synthesized)
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="aiQuestionsGrid">
+                <!-- Injected via JS -->
+            </div>
+
+            
+            <!-- NEW TOP 10 REASONS SECTION -->
+            <div class="mt-8 pt-8 border-t border-slate-700 flex flex-col items-center">
+                <h4 class="text-xl font-bold text-white mb-2">TOP 10 REASONS USERS DON'T PURCHASE</h4>
+                <p class="text-slate-400 mb-6 text-center">Backed by actual customer reviews extracted from the dataset</p>
+                <button onclick="openTop10Modal()" class="bg-brandIndigo hover:bg-indigo-500 text-white font-medium py-3 px-8 rounded-xl shadow-lg transition-colors flex items-center gap-2">
+                    <i data-lucide="list-ordered" class="w-5 h-5"></i>
+                    View Top 10 Reviews
+                </button>
+            </div>
+        </div>
+
+        <!-- Opportunity Ranking Table -->
+        <div class="glass-card rounded-2xl p-6 shadow-lg mb-8">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="list-ordered" class="text-brandIndigo w-5 h-5"></i> Opportunity Ranking</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700 text-slate-400 text-sm">
+                            <th class="pb-3 font-semibold w-12">Rank</th>
+                            <th class="pb-3 font-semibold">User Barrier</th>
+                            <th class="pb-3 font-semibold">Recommended Opportunity Area</th>
+                            <th class="pb-3 font-semibold">Score</th>
+                            <th class="pb-3 font-semibold">Frequency</th>
+                        </tr>
+                    </thead>
+                    <tbody id="opportunityTableBody" class="text-sm">
+                        <tr><td colspan="5" class="py-6 text-center text-slate-500">No data. Analyze an app first.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Review Filters & Table -->
+        <div class="glass-card rounded-2xl p-6 shadow-lg mb-8">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="message-square-text" class="text-brandIndigo w-5 h-5"></i> Representative Evidence</h3>
+            <div class="flex flex-wrap gap-4 items-center mb-6">
+                <div class="flex-1 min-w-[250px] relative">
+                    <i data-lucide="filter" class="absolute left-3 top-3 text-slate-400 w-5 h-5"></i>
+                    <input type="text" id="filterInput" placeholder="Filter reviews by text..." class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 pl-10 pr-4 text-white focus:outline-none focus:border-brandIndigo">
+                </div>
+                <select id="sourceFilter" class="bg-slate-800 border border-slate-700 rounded-xl py-2 px-4 text-white focus:outline-none focus:border-brandIndigo">
+                    <option value="all">All Sources</option>
+                    <option value="play_store">Play Store</option>
+                    <option value="app_store">App Store</option>
+                </select>
+                <select id="intentFilter" class="bg-slate-800 border border-slate-700 rounded-xl py-2 px-4 text-white focus:outline-none focus:border-brandIndigo">
+                    <option value="all">All Intents</option>
+                    <option value="High">High Intent</option>
+                    <option value="Medium">Medium Intent</option>
+                    <option value="Low">Low Intent</option>
+                </select>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700 text-slate-400 text-sm">
+                            <th class="pb-3 font-semibold w-24">Date</th>
+                            <th class="pb-3 font-semibold w-24">Source</th>
+                            <th class="pb-3 font-semibold w-32">Barrier</th>
+                            <th class="pb-3 font-semibold w-24">Intent</th>
+                            <th class="pb-3 font-semibold">Review Text & AI Extract</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reviewsTableBody" class="text-sm">
+                        <tr><td colspan="5" class="py-10 text-center text-slate-500">Analyze an app to start generating insights.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Floating AI Chat Widget -->
+        <div id="chatWidget" class="fixed bottom-6 right-6 w-80 md:w-96 glass-card rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-700 z-50 transition-all duration-300 transform translate-y-full" style="height: 500px; max-height: 80vh;">
+            <div class="bg-cardBg p-4 border-b border-slate-700 flex justify-between items-center cursor-pointer" onclick="toggleChat()">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="bot" class="text-brandIndigo w-5 h-5"></i>
+                    <h3 class="font-bold text-white">Ask AI Agent</h3>
+                </div>
+                <i data-lucide="chevron-down" id="chatToggleIcon" class="text-slate-400 w-5 h-5"></i>
+            </div>
+            
+            <div id="chatMessages" class="flex-1 p-4 overflow-y-auto flex flex-col gap-3 bg-slate-900/50">
+                <div class="bg-cardBg border border-slate-700 p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm text-slate-300">
+                    Hi! I'm your AI Data Analyst. Ask me anything about the extracted wishlist insights!
+                </div>
+            </div>
+            
+            <div class="p-3 bg-cardBg border-t border-slate-700 flex items-center gap-2">
+                <input type="text" id="chatInput" placeholder="Ask a question..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brandIndigo" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()" class="bg-brandIndigo hover:bg-indigo-500 text-white p-2 rounded-lg transition-colors">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Chat Toggle Button (Visible when widget is hidden) -->
+        <button id="chatOpenBtn" onclick="toggleChat()" class="fixed bottom-6 right-6 bg-brandIndigo hover:bg-indigo-500 text-white p-4 rounded-full shadow-2xl transition-all z-40 flex items-center justify-center">
+            <i data-lucide="message-circle" class="w-6 h-6"></i>
+        </button>
+
+    </div>
+    
+        <!-- Top 10 Reasons Modal -->
+        <div id="top10Modal" class="hidden fixed inset-0 bg-darkBg/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
+            <div class="glass-card w-full max-w-5xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-700">
+                <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-cardBg">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                            <i data-lucide="bar-chart-2" class="text-brandIndigo"></i> Top 10 Reasons Users Don't Purchase
+                        </h2>
+                        <p class="text-slate-400 mt-1 text-sm">Direct evidence extracted from raw reviews</p>
+                    </div>
+                    <button onclick="closeTop10Modal()" class="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-lg">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <div id="top10ModalContent" class="flex-1 p-6 overflow-y-auto flex flex-col gap-8 bg-slate-900/50">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+
+    <script>
+        lucide.createIcons();
+
+        let allData = [];
+        let filteredData = [];
+        let currentInsights = null;
+        let currentLlmInsights = null;
+        let charts = { opp: null, theme: null, intent: null };
+
+        const filterInput = document.getElementById('filterInput');
+        const sourceFilter = document.getElementById('sourceFilter');
+        const intentFilter = document.getElementById('intentFilter');
+        const tableBody = document.getElementById('reviewsTableBody');
+        const oppTableBody = document.getElementById('opportunityTableBody');
+
+        async function runLiveScraper() {
+            const appName = "Myntra";
+
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ app_name: appName })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.status === 'success') {
+                    document.getElementById('activeApp').innerText = result.app_query;
+                    allData = result.data;
+                    currentInsights = result.insights;
+                    currentLlmInsights = result.llm_insights;
+                    applyFilters();
+                    updateInsightsUI();
+                } else {
+                    alert("Analysis Error: " + (result.error || "Unknown error"));
+                }
+            } catch(e) {
+                alert("Connection Error: " + e.message);
+            } finally {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+        }
+
+        function applyFilters() {
+            const term = filterInput.value.toLowerCase();
+            const source = sourceFilter.value;
+            const intent = intentFilter.value;
+
+            filteredData = allData.filter(item => {
+                const textLower = (item.raw_text || '').toLowerCase();
+                const textMatch = textLower.includes(term);
+                const sourceMatch = source === 'all' ? true : (item.source || '').toLowerCase() === source;
+                const intentMatch = intent === 'all' ? true : (item.ai_analysis?.intent === intent);
+                return textMatch && sourceMatch && intentMatch;
+            });
+
+            updateReviewsTable();
+        }
+
+        filterInput.addEventListener('input', applyFilters);
+        sourceFilter.addEventListener('change', applyFilters);
+        intentFilter.addEventListener('change', applyFilters);
+
+        function updateInsightsUI() {
+            if(!currentInsights) return;
+            
+            document.getElementById('totalAnalyzed').innerText = currentInsights.total_analyzed;
+            
+            const opps = currentInsights.top_opportunities || [];
+            if(opps.length > 0) {
+                document.getElementById('topBarrier').innerText = opps[0].barrier;
+                document.getElementById('topOpportunity').innerText = opps[0].opportunity;
+                document.getElementById('topOpportunity').title = opps[0].opportunity;
+            } else {
+                document.getElementById('topBarrier').innerText = "None";
+                document.getElementById('topOpportunity').innerText = "None";
+            }
+
+            // Update Opportunities Table
+            oppTableBody.innerHTML = '';
+            if(opps.length === 0) {
+                oppTableBody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-500">No barriers detected.</td></tr>';
+            } else {
+                opps.forEach((o, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-800 hover:bg-slate-800/50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="py-4 pl-4 text-white font-bold">#${idx+1}</td>
+                        <td class="py-4 text-rose-400 font-medium">${o.barrier}</td>
+                        <td class="py-4 text-green-400">${o.opportunity}</td>
+                        <td class="py-4"><span class="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-lg font-bold shadow-sm">${o.score.toFixed(1)}</span></td>
+                        <td class="py-4 text-slate-400">${o.frequency} reviews</td>
+                    `;
+                    oppTableBody.appendChild(tr);
+                });
+            }
+            
+            // Update AI Deep Insights Panel
+            const aiContainer = document.getElementById('aiInsightsContainer');
+            if(currentLlmInsights) {
+                aiContainer.style.display = 'block';
+                
+                const qGrid = document.getElementById('aiQuestionsGrid');
+                qGrid.innerHTML = '';
+                
+                const questions = [
+                    {k: 'q1_wishlist_reasons', title: 'Why add to wishlist?'},
+                    {k: 'q2_purchase_preventions', title: 'What prevents purchase?'},
+                    {k: 'q3_remaining_uncertainties', title: 'Remaining uncertainties?'},
+                    {k: 'q4_postponement_causes', title: 'Causes for postponement?'}
+                ];
+                
+                questions.forEach(q => {
+                    if(currentLlmInsights[q.k]) {
+                        qGrid.innerHTML += `
+                        <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+                            <h4 class="text-indigo-400 font-bold mb-2 text-sm uppercase tracking-wider">${q.title}</h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">${currentLlmInsights[q.k]}</p>
+                        </div>`;
+                    }
+                });
+            } else {
+                aiContainer.style.display = 'none';
+            }
+
+            updateCharts();
+        }
+
+        function updateReviewsTable() {
+            tableBody.innerHTML = '';
+            if(filteredData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-500">No reviews found.</td></tr>';
+            } else {
+                filteredData.forEach(item => {
+                    const d = item.date ? new Date(item.date).toLocaleDateString() : 'N/A';
+                    const srcIcon = item.source === 'play_store' ? 'play' : 'apple';
+                    const ai = item.ai_analysis || {};
+                    
+                    let intentColor = 'text-slate-400 bg-slate-400/10 border-slate-500/30';
+                    if(ai.intent === 'High') intentColor = 'text-green-400 bg-green-400/10 border-green-500/30';
+                    if(ai.intent === 'Medium') intentColor = 'text-yellow-400 bg-yellow-400/10 border-yellow-500/30';
+                    if(ai.intent === 'Low') intentColor = 'text-rose-400 bg-rose-400/10 border-rose-500/30';
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-800 hover:bg-slate-800/50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="py-4 pr-4 whitespace-nowrap text-slate-400">${d}</td>
+                        <td class="py-4 pr-4">
+                            <span class="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded-md flex items-center gap-1 w-max border border-slate-700">
+                                <i data-lucide="${srcIcon}" class="w-3 h-3"></i>
+                                ${item.source === 'play_store' ? 'Play Store' : 'App Store'}
+                            </span>
+                        </td>
+                        <td class="py-4 pr-4">
+                            ${ai.barrier !== 'None' ? `<span class="text-xs font-medium text-rose-300 bg-rose-900/30 px-2 py-1 rounded border border-rose-800 shadow-sm">${ai.barrier}</span>` : '<span class="text-xs text-slate-500">-</span>'}
+                        </td>
+                        <td class="py-4 pr-4">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-sm ${intentColor}">
+                                ${ai.intent || 'Unknown'}
+                            </span>
+                        </td>
+                        <td class="py-4 text-slate-300">
+                            <p class="text-sm mb-2" title="Theme: ${ai.theme} | Behavior: ${ai.behavior}">${item.raw_text?.replace(/"/g,'&quot;')}</p>
+                            <div class="flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-slate-500 bg-slate-800/50 rounded-lg p-2 border border-slate-700/50 inline-flex">
+                                <span><span class="text-slate-400 font-semibold">Rating:</span> ${item.rating}★</span>
+                                <span><span class="text-slate-400 font-semibold">Theme:</span> ${ai.theme}</span>
+                                <span><span class="text-slate-400 font-semibold">Behavior:</span> ${ai.behavior}</span>
+                                ${ai.opportunity !== 'None' ? `<span class="text-green-400 font-medium"><i data-lucide="lightbulb" class="w-3 h-3 inline"></i> ${ai.opportunity}</span>` : ''}
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+                lucide.createIcons();
+            }
+        }
+
+        function updateCharts() {
+            if(!currentInsights) return;
+            
+            // 1. Opportunity Bar Chart
+            const opps = currentInsights.top_opportunities.slice(0, 5); // Top 5
+            if(charts.opp) charts.opp.destroy();
+            charts.opp = new Chart(document.getElementById('opportunityChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: opps.map(o => o.barrier),
+                    datasets: [{
+                        label: 'Opportunity Score',
+                        data: opps.map(o => o.score),
+                        backgroundColor: '#6366f1',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            // 2. Theme Doughnut Chart
+            const themes = currentInsights.theme_distribution;
+            if(charts.theme) charts.theme.destroy();
+            charts.theme = new Chart(document.getElementById('themeChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(themes),
+                    datasets: [{
+                        data: Object.values(themes),
+                        backgroundColor: ['#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#64748b', '#06b6d4', '#d946ef'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '70%',
+                    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', boxWidth: 10, font: {size: 10} } } }
+                }
+            });
+            
+            // 3. Intent Doughnut Chart
+            const intents = currentInsights.intent_distribution;
+            if(charts.intent) charts.intent.destroy();
+            
+            // Ensure consistent colors for Intent
+            const intentColors = { 'High': '#4ade80', 'Medium': '#facc15', 'Low': '#fb7185', 'Unknown': '#94a3b8' };
+            
+            charts.intent = new Chart(document.getElementById('intentChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(intents),
+                    datasets: [{
+                        data: Object.values(intents),
+                        backgroundColor: Object.keys(intents).map(k => intentColors[k] || '#94a3b8'),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '70%',
+                    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', boxWidth: 10, font: {size: 10} } } }
+                }
+            });
+        }
+
+        // Chat Widget Logic
+        let chatOpen = false;
+        
+        function toggleChat() {
+            const widget = document.getElementById('chatWidget');
+            const openBtn = document.getElementById('chatOpenBtn');
+            chatOpen = !chatOpen;
+            
+            if (chatOpen) {
+                widget.classList.remove('translate-y-full');
+                widget.classList.add('translate-y-0');
+                openBtn.classList.add('hidden');
+                document.getElementById('chatInput').focus();
+            } else {
+                widget.classList.remove('translate-y-0');
+                widget.classList.add('translate-y-full');
+                openBtn.classList.remove('hidden');
+            }
+        }
+        
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            const messages = document.getElementById('chatMessages');
+            
+            // Add User Message
+            messages.innerHTML += `
+                <div class="bg-brandIndigo text-white p-3 rounded-lg rounded-tr-none self-end max-w-[85%] text-sm">
+                    ${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+                </div>
+            `;
+            input.value = '';
+            
+            // Add Loading Indicator
+            const loadingId = 'loading-' + Date.now();
+            messages.innerHTML += `
+                <div id="${loadingId}" class="bg-cardBg border border-slate-700 p-3 rounded-lg rounded-tl-none self-start flex gap-2 items-center text-sm text-slate-400">
+                    <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-brandIndigo"></i> Thinking...
+                </div>
+            `;
+            messages.scrollTop = messages.scrollHeight;
+            lucide.createIcons();
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: text })
+                });
+                
+                const data = await response.json();
+                document.getElementById(loadingId).remove();
+                
+                if (response.ok && data.answer) {
+                    messages.innerHTML += `
+                        <div class="bg-cardBg border border-slate-700 p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm text-slate-300">
+                            ${data.answer.replace(/\n/g, "<br>")}
+                        </div>
+                    `;
+                } else {
+                    messages.innerHTML += `
+                        <div class="bg-rose-900/30 border border-rose-800 text-rose-300 p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm">
+                            Error: ${data.error || 'Failed to get response'}
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                document.getElementById(loadingId).remove();
+                messages.innerHTML += `
+                    <div class="bg-rose-900/30 border border-rose-800 text-rose-300 p-3 rounded-lg rounded-tl-none self-start max-w-[85%] text-sm">
+                        Connection Error: ${e.message}
+                    </div>
+                `;
+            }
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Top 10 Reasons Modal Logic
+        function openTop10Modal() {
+            generateTop10Reasons();
+            document.getElementById('top10Modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // prevent background scrolling
+        }
+        
+        function closeTop10Modal() {
+            document.getElementById('top10Modal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        
+        function generateTop10Reasons() {
+            if(!currentInsights || !allData) return;
+            
+            const totalReviews = currentInsights.total_analyzed;
+            // Get all barriers that aren't "None", sort by frequency
+            let barriers = currentInsights.top_opportunities.filter(o => o.barrier !== "None");
+            barriers.sort((a, b) => b.frequency - a.frequency);
+            const top10 = barriers.slice(0, 10);
+            
+            const container = document.getElementById('top10ModalContent');
+            container.innerHTML = '';
+            
+            top10.forEach((b, idx) => {
+                const percentage = ((b.frequency / totalReviews) * 100).toFixed(1);
+                
+                // Find up to 3 representative reviews
+                const relevantReviews = allData.filter(r => r.ai_analysis && r.ai_analysis.barrier === b.barrier);
+                const sampleReviews = relevantReviews.slice(0, 3);
+                
+                let reviewsHtml = '';
+                sampleReviews.forEach(r => {
+                    const srcIcon = r.source === 'play_store' ? 'play' : 'apple';
+                    const theme = r.ai_analysis.theme || 'Unknown';
+                    reviewsHtml += `
+                        <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 mt-3 shadow-inner">
+                            <div class="flex items-center justify-between mb-2 border-b border-slate-700/50 pb-2">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-yellow-400 font-bold text-sm bg-yellow-400/10 px-2 py-0.5 rounded border border-yellow-500/20">${r.rating}★</span>
+                                    <span class="text-slate-400 text-xs">${theme}</span>
+                                </div>
+                                <i data-lucide="${srcIcon}" class="w-4 h-4 text-slate-500" title="${r.source}"></i>
+                            </div>
+                            <p class="text-sm text-slate-300 italic">"${r.raw_text}"</p>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML += `
+                    <div class="bg-cardBg p-6 rounded-2xl border border-slate-700 shadow-md">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 border-b border-slate-700 pb-4">
+                            <div class="flex items-center gap-4">
+                                <div class="bg-brandIndigo text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl shadow-lg border-2 border-indigo-400/30">
+                                    #${idx + 1}
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">${b.barrier}</h3>
+                                    <p class="text-indigo-400 text-sm font-medium mt-1"><i data-lucide="lightbulb" class="w-3 h-3 inline"></i> ${b.opportunity}</p>
+                                </div>
+                            </div>
+                            <div class="mt-4 md:mt-0 text-right bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800 shadow-inner">
+                                <div class="text-3xl font-bold text-white">${percentage}%</div>
+                                <div class="text-xs text-slate-400 uppercase tracking-wide mt-1">${b.frequency} Supporting Reviews</div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Representative Evidence</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                ${reviewsHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (top10.length === 0) {
+                container.innerHTML = '<p class="text-center text-slate-400 py-10">No barrier data found.</p>';
+            }
+            
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

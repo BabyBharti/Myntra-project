@@ -60,7 +60,7 @@ def search_and_collect_play_store(app_query, max_reviews=300):
         all_unfiltered_reviews = []
         continuation_token = None
         iteration = 0
-        max_iterations = 5
+        max_iterations = 20
         
         while collected < max_reviews and iteration < max_iterations:
             iteration += 1

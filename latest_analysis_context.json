@@ -1,0 +1,86 @@
+{
+    "top_opportunities": [
+        {
+            "barrier": "Quality uncertainty",
+            "opportunity": "Highlight verified purchase reviews & fabric details",
+            "score": 4436.8,
+            "frequency": 1622,
+            "avg_rating": 4.5
+        },
+        {
+            "barrier": "Returns/exchange concern",
+            "opportunity": "Clearer return policies & easy-return badge",
+            "score": 1264.0,
+            "frequency": 596,
+            "avg_rating": 2.0
+        },
+        {
+            "barrier": "Fit uncertainty",
+            "opportunity": "Improve sizing charts & add AR try-on",
+            "score": 410.4,
+            "frequency": 140,
+            "avg_rating": 3.2
+        },
+        {
+            "barrier": "Waiting for sale",
+            "opportunity": "Price drop alerts & customized discounts",
+            "score": 379.7,
+            "frequency": 160,
+            "avg_rating": 3.8
+        },
+        {
+            "barrier": "Price uncertainty",
+            "opportunity": "Show price history or competitor comparison",
+            "score": 280.6,
+            "frequency": 98,
+            "avg_rating": 4.5
+        },
+        {
+            "barrier": "Need for social validation",
+            "opportunity": "Show 'X people bought this' or styling community",
+            "score": 57.0,
+            "frequency": 26,
+            "avg_rating": 2.5
+        },
+        {
+            "barrier": "Comparing alternatives",
+            "opportunity": "Side-by-side product comparison feature",
+            "score": 50.0,
+            "frequency": 18,
+            "avg_rating": 2.6
+        },
+        {
+            "barrier": "Purchase postponement",
+            "opportunity": "Limited-time cart reservation",
+            "score": 16.0,
+            "frequency": 2,
+            "avg_rating": 1.0
+        },
+        {
+            "barrier": "Lack of product information",
+            "opportunity": "Add video reviews & detailed material specs",
+            "score": 10.5,
+            "frequency": 4,
+            "avg_rating": 3.0
+        },
+        {
+            "barrier": "Product unavailable",
+            "opportunity": "Restock notification & similar item suggestions",
+            "score": 2.0,
+            "frequency": 2,
+            "avg_rating": 1.0
+        }
+    ],
+    "theme_distribution": {
+        "Quality / Trust": 2108,
+        "Price / Timing": 598,
+        "Social Validation": 60,
+        "Fit / Size": 138,
+        "Comparison / Alternatives": 14,
+        "Styling / Occasion": 40,
+        "Wishlist / Save": 34,
+        "Purchase decision": 6,
+        "Regret / Abandonment": 2
+    },
+    "llm_synthesized_answers": null
+}
