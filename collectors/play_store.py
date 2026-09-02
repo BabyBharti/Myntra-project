@@ -70,7 +70,7 @@ def search_and_collect_play_store(app_query, max_reviews=300):
                     lang='en',
                     country='in',
                     sort=Sort.NEWEST,
-                    count=100,
+                    count=1000,
                     continuation_token=continuation_token
                 )
                 
@@ -117,9 +117,15 @@ def search_and_collect_play_store(app_query, max_reviews=300):
                 logger.error(f"Error scraping Play Store reviews for {app_id}: {e}")
                 break
                 
+        # Fill up to max_reviews using unfiltered reviews if we fell short
+        if collected < max_reviews:
+            needed = max_reviews - collected
+            all_filtered_reviews.extend(all_unfiltered_reviews[:needed])
+            collected = len(all_filtered_reviews)
+            
         if collected == 0 and len(all_unfiltered_reviews) > 0:
-            logger.info("No reviews matched keywords. Falling back to 50 most recent reviews.")
-            return all_unfiltered_reviews[:50]
+            logger.info("No reviews matched keywords. Falling back to most recent reviews.")
+            return all_unfiltered_reviews[:max_reviews]
             
         logger.info(f"Finished Play Store: collected {collected} relevant reviews for {app_title}.")
         

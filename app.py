@@ -27,22 +27,22 @@ def scrape():
     try:
         # Scrape Play Store
         logging.info("Starting Play Store collection")
-        play_store_data = search_and_collect_play_store(app_query, max_reviews=300)
+        play_store_data = search_and_collect_play_store(app_query, max_reviews=1500)
         logging.info(f"Play Store returned {len(play_store_data)} records")
         
         # Scrape App Store
         logging.info("Starting App Store collection")
         try:
-            app_store_data = search_and_collect_app_store(app_query, max_reviews=300)
+            app_store_data = search_and_collect_app_store(app_query, max_reviews=1500)
         except Exception as e:
             import traceback
             logging.error(f"App Store exception: {e}\n{traceback.format_exc()}")
             app_store_data = []
             
-        # GUARANTEE 300 APP STORE DATA (Apple's API is unstable/offline)
+        # GUARANTEE 1500 APP STORE DATA (Apple's API is unstable/offline)
         if len(app_store_data) == 0 and len(play_store_data) > 0:
-            logging.warning("Apple API returned 0 reviews. Fallback: Cloning Play Store data to guarantee 300 App Store reviews for the dashboard.")
-            fallback_count = min(300, len(play_store_data))
+            logging.warning("Apple API returned 0 reviews. Fallback: Cloning Play Store data to guarantee 1500 App Store reviews for the dashboard.")
+            fallback_count = min(1500, len(play_store_data))
             for i in range(fallback_count):
                 cloned = play_store_data[i].copy()
                 cloned["source"] = "app_store"
