@@ -66,8 +66,8 @@ def scrape():
         logging.info("Starting LLM deep analysis (this may take 1-2 minutes)")
         chunk_size = 50
         batch_results = []
-        # Limit to first 100 reviews to avoid extreme timeouts and save Gemini API quota for the Chat Agent
-        data_to_analyze = combined_data[:100]
+        # Limit to first 20 reviews to avoid extreme timeouts on Render's free tier and save Gemini API quota
+        data_to_analyze = combined_data[:20]
         
         for i in range(0, len(data_to_analyze), chunk_size):
             chunk = data_to_analyze[i:i + chunk_size]

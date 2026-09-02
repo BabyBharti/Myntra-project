@@ -285,8 +285,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ app_name: appName })
                 });
-                
-                const result = await response.json();
+                let result;
+                try {
+                    result = await response.json();
+                } catch(e) {
+                    throw new Error("Server took too long to respond (Render Timeout) or returned an invalid response. Please try again.");
+                }
                 
                 if (response.ok && result.status === 'success') {
                     document.getElementById('activeApp').innerText = result.app_query;
