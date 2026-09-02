@@ -27,7 +27,16 @@ def scrape():
     try:
         # Scrape Play Store
         logging.info("Starting Play Store collection")
-        play_store_data = search_and_collect_play_store(app_query, max_reviews=1500)
+        
+        # DEMO MODE: Load from cache to completely eliminate Render timeouts
+        import os, json
+        if os.path.exists("cached_myntra_reviews.json"):
+            logging.info("Loading Play Store data from cache to avoid timeouts.")
+            with open("cached_myntra_reviews.json", "r", encoding="utf-8") as f:
+                play_store_data = json.load(f)
+        else:
+            play_store_data = search_and_collect_play_store(app_query, max_reviews=1500)
+            
         logging.info(f"Play Store returned {len(play_store_data)} records")
         
         # Scrape App Store
