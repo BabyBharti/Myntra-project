@@ -66,8 +66,8 @@ def scrape():
         logging.info("Starting LLM deep analysis (this may take 1-2 minutes)")
         chunk_size = 50
         batch_results = []
-        # Limit to first 20 reviews to avoid extreme timeouts on Render's free tier and save Gemini API quota
-        data_to_analyze = combined_data[:20]
+        # Limit to first 10 reviews to avoid extreme timeouts on Render's free tier and save Gemini API quota
+        data_to_analyze = combined_data[:10]
         
         for i in range(0, len(data_to_analyze), chunk_size):
             chunk = data_to_analyze[i:i + chunk_size]
@@ -80,14 +80,15 @@ def scrape():
                 
         llm_insights_dict = None
         if batch_results:
-            logging.info("Synthesizing final LLM report")
+            logging.info("Formatting LLM report")
             try:
-                final_report = synthesize_insights(batch_results)
-                # Convert dataclass to dict so it can be JSON serialized
-                import json
-                llm_insights_dict = json.loads(final_report.model_dump_json())
+                if len(batch_results) == 1:
+                    llm_insights_dict = json.loads(batch_results[0].model_dump_json())
+                else:
+                    final_report = synthesize_insights(batch_results)
+                    llm_insights_dict = json.loads(final_report.model_dump_json())
             except Exception as e:
-                logging.error(f"Failed to synthesize insights: {e}")
+                logging.error(f"Failed to format insights: {e}")
                 
         # Save complete scraped data to JSON for debugging
         import json

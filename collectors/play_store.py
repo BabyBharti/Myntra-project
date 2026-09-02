@@ -70,7 +70,7 @@ def search_and_collect_play_store(app_query, max_reviews=300):
                     lang='en',
                     country='in',
                     sort=Sort.NEWEST,
-                    count=1000,
+                    count=100,
                     continuation_token=continuation_token
                 )
                 
